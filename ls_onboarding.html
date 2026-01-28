@@ -3,10 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nebula-Lume – ls_onboarding</title>
+    <title>Nebula-Lume – LS Onboarding</title>
+
     <style>
-      html, body { height: 100%; margin: 0; background: #000; }
-      canvas { width: 100%; height: 100%; display: block; }
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: #000;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
       #status {
         position: fixed;
         top: 10px;
@@ -27,56 +38,76 @@
     <div id="status">Booting…</div>
     <canvas id="riveCanvas"></canvas>
 
-    <!-- Rive runtime via script tag (no ES module import) -->
-    <script src="https://unpkg.com/@rive-app/canvas@latest"></script>
+    <!-- ✅ REQUIRED: UMD runtime that exposes window.rive -->
+    <script src="https://cdn.jsdelivr.net/npm/@rive-app/canvas@latest/rive.js"></script>
+
     <script>
       const statusEl = document.getElementById("status");
-      const setStatus = (msg) => { statusEl.textContent = msg; console.log(msg); };
+      const setStatus = (msg) => {
+        statusEl.textContent = msg;
+        console.log(msg);
+      };
 
-      // IMPORTANT: path must match where the file lives in your repo
+      // 🔧 MUST MATCH YOUR REPO + FILE NAME EXACTLY
       const RIV_PATH = "./ls_onboarding.riv";
 
-      window.addEventListener("error", (e) => {
-        setStatus("JS ERROR:\n" + (e.message || e.error));
-      });
-      window.addEventListener("unhandledrejection", (e) => {
-        setStatus("PROMISE ERROR:\n" + (e.reason?.message || e.reason));
-      });
+      // 🔧 MUST MATCH STATE MACHINE NAME IN RIVE EXACTLY (SPACES + CASE)
+      const STATE_MACHINE = "State Machine 1";
 
-      (async function main() {
-        setStatus("Checking .riv…");
+      (async function initRive() {
 
-        // 1) Verify the .riv is reachable (catch 404/path issues)
-        const res = await fetch(RIV_PATH, { cache: "no-store" });
-        if (!res.ok) {
-          setStatus(`ERROR: Can't load ${RIV_PATH}\nHTTP ${res.status} ${res.statusText}\n\nFix: ensure ls_onboarding.riv is in the SAME folder as ls_onboarding.html (repo root), or update RIV_PATH.`);
+        // 1️⃣ Confirm runtime loaded
+        if (!window.rive || !window.rive.Rive) {
+          setStatus("❌ ERROR: Rive runtime failed to load (window.rive missing)");
           return;
         }
 
-        setStatus(".riv found. Initializing Rive…");
+        // 2️⃣ Confirm .riv file is reachable
+        setStatus("Checking .riv file…");
+        try {
+          const res = await fetch(RIV_PATH, { cache: "no-store" });
+          if (!res.ok) {
+            setStatus(
+              `❌ ERROR: Cannot load ${RIV_PATH}\n` +
+              `HTTP ${res.status} ${res.statusText}\n\n` +
+              `• File must be in the SAME folder as this HTML\n` +
+              `• Filename & capitalization must match exactly`
+            );
+            return;
+          }
+        } catch (err) {
+          setStatus("❌ ERROR: Network error while fetching .riv\n" + err);
+          return;
+        }
 
-        // 2) Initialize Rive
-        const canvas = document.getElementById("riveCanvas");
+        // 3️⃣ Initialize Rive
+        setStatus("Initializing Rive…");
 
-        // Script tag exposes a global `rive` object
         const r = new rive.Rive({
           src: RIV_PATH + "?v=" + Date.now(), // cache bust
-          canvas,
+          canvas: document.getElementById("riveCanvas"),
           autoplay: true,
-          // NOTE: state machine name includes spaces — this must match EXACTLY
-          stateMachines: ["State Machine 1"],
+          stateMachines: [STATE_MACHINE],
           fit: rive.Fit.Cover,
           alignment: rive.Alignment.Center,
+
           onLoad: () => {
-            setStatus("Rive loaded ✅\nState machine: State Machine 1");
+            setStatus(
+              "✅ Rive loaded successfully\n" +
+              "State Machine: " + STATE_MACHINE
+            );
             r.resizeDrawingSurfaceToCanvas();
           },
+
           onLoadError: (err) => {
-            setStatus("Rive load error:\n" + (err?.message || String(err)));
-          },
+            setStatus("❌ Rive load error:\n" + (err?.message || err));
+          }
         });
 
-        window.addEventListener("resize", () => r.resizeDrawingSurfaceToCanvas());
+        window.addEventListener("resize", () => {
+          r.resizeDrawingSurfaceToCanvas();
+        });
+
       })();
     </script>
   </body>

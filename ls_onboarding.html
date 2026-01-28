@@ -4,46 +4,62 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LS Onboarding – Rive Preview</title>
-
     <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background: #000;
+      html, body { height: 100%; margin: 0; background: #000; }
+      #wrap { height: 100%; display: grid; grid-template-rows: auto 1fr; }
+      #status {
+        font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        color: #fff; padding: 10px 12px;
+        background: rgba(255,255,255,0.08);
       }
-
-      canvas {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
+      canvas { width: 100%; height: 100%; display: block; }
     </style>
   </head>
 
   <body>
-    <canvas id="riveCanvas"></canvas>
+    <div id="wrap">
+      <div id="status">Loading…</div>
+      <canvas id="riveCanvas"></canvas>
+    </div>
 
     <script type="module">
-      import Rive from "https://unpkg.com/@rive-app/canvas@2.24.0";
+      const statusEl = document.getElementById("status");
+      const setStatus = (msg) => { statusEl.textContent = msg; console.log(msg); };
 
-      const rive = new Rive({
-        src: "./ls_onboarding.riv",   // ✅ matches your repo filename
-        canvas: document.getElementById("riveCanvas"),
-        stateMachines: "Main_Flow",   // ✅ your state machine
-        autoplay: true,
-        fit: "cover",
-        alignment: "center",
-      });
+      const RIV_PATH = "./ls_onboarding.riv"; // ✅ adjust if your file is in /assets
 
-      rive.onLoad(() => {
-        rive.resizeDrawingSurfaceToCanvas();
-        console.log("Rive loaded: ls_onboarding.riv");
-      });
+      // 1) Check the .riv file exists (this catches 404/path issues immediately)
+      try {
+        const res = await fetch(RIV_PATH, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+        setStatus(`.riv found (${res.status}). Initializing Rive…`);
+      } catch (e) {
+        setStatus(`ERROR: Can't load ${RIV_PATH}. ${e.message}`);
+        throw e;
+      }
 
-      window.addEventListener("resize", () => {
-        rive.resizeDrawingSurfaceToCanvas();
-      });
+      // 2) Load Rive runtime and render
+      try {
+        const { default: Rive } = await import("https://unpkg.com/@rive-app/canvas@2.24.0");
+        const rive = new Rive({
+          src: RIV_PATH + "?v=" + Date.now(), // cache-bust
+          canvas: document.getElementById("riveCanvas"),
+          autoplay: true,
+          // ✅ IMPORTANT: this must match your State Machine name EXACTLY
+          stateMachines: "State_Machine_1",
+          fit: "cover",
+          alignment: "center",
+          onLoad: () => {
+            setStatus("Rive loaded ✅ (State machine: Main_Flow).");
+            rive.resizeDrawingSurfaceToCanvas();
+          },
+        });
+
+        window.addEventListener("resize", () => rive.resizeDrawingSurfaceToCanvas());
+      } catch (e) {
+        setStatus(`ERROR: Rive runtime/init failed. ${e.message}`);
+        throw e;
+      }
     </script>
   </body>
 </html>

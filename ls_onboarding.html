@@ -1,114 +1,83 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Nebula-Lume – LS Onboarding</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rive Preview – Onboarding</title>
 
-    <style>
-      html, body {
-        height: 100%;
-        margin: 0;
-        background: #000;
-      }
+  <!-- Rive Canvas Runtime -->
+  <script src="https://unpkg.com/@rive-app/canvas@2.15.4"></script>
 
-      canvas {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
+  <style>
+    /* ===== Page reset ===== */
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
 
-      #status {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        z-index: 9999;
-        padding: 10px 12px;
-        border-radius: 10px;
-        background: rgba(255,255,255,0.12);
-        color: #fff;
-        font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-        white-space: pre-wrap;
-      }
-    </style>
-  </head>
+    /* ===== Rive canvas ===== */
+    canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      touch-action: manipulation;
+    }
 
-  <body>
-    <div id="status">Booting…</div>
-    <canvas id="riveCanvas"></canvas>
+    /* ===== Navigation arrows ===== */
+    .nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 28px;
+      color: #fff;
+      opacity: 0.7;
+      cursor: pointer;
+      user-select: none;
+      padding: 12px;
+      z-index: 10;
+    }
+    .nav:hover { opacity: 1; }
+    .nav.left { left: 12px; }
+    .nav.right { right: 12px; }
+  </style>
+</head>
 
-    <!-- ✅ REQUIRED: UMD runtime that exposes window.rive -->
-    <script src="https://cdn.jsdelivr.net/npm/@rive-app/canvas@latest/rive.js"></script>
+<body>
 
-    <script>
-      const statusEl = document.getElementById("status");
-      const setStatus = (msg) => {
-        statusEl.textContent = msg;
-        console.log(msg);
-      };
+  <!-- Navigate between Rive previews -->
+  <div class="nav left" onclick="location.href='welcome_back.html'">←</div>
+  <div class="nav right" onclick="location.href='ready_2_bowl.html'">→</div>
 
-      // 🔧 MUST MATCH YOUR REPO + FILE NAME EXACTLY
-      const RIV_PATH = "./ls_onboarding.riv";
+  <!-- Rive render target -->
+  <canvas id="riveCanvas"></canvas>
 
-      // 🔧 MUST MATCH STATE MACHINE NAME IN RIVE EXACTLY (SPACES + CASE)
-      const STATE_MACHINE = "State Machine 1";
+  <script>
+    /*
+      This configuration supports BOTH:
+      - State machines (preferred, interactive)
+      - Animations (fallback if no state machine exists)
 
-      (async function initRive() {
+      No edits required if names differ.
+    */
+    new rive.Rive({
+      src: "../rive/ls_onboarding_2.riv",
+      canvas: document.getElementById("riveCanvas"),
 
-        // 1️⃣ Confirm runtime loaded
-        if (!window.rive || !window.rive.Rive) {
-          setStatus("❌ ERROR: Rive runtime failed to load (window.rive missing)");
-          return;
-        }
+      // Preferred: state machine
+      stateMachines: ["State Machine 1"],
 
-        // 2️⃣ Confirm .riv file is reachable
-        setStatus("Checking .riv file…");
-        try {
-          const res = await fetch(RIV_PATH, { cache: "no-store" });
-          if (!res.ok) {
-            setStatus(
-              `❌ ERROR: Cannot load ${RIV_PATH}\n` +
-              `HTTP ${res.status} ${res.statusText}\n\n` +
-              `• File must be in the SAME folder as this HTML\n` +
-              `• Filename & capitalization must match exactly`
-            );
-            return;
-          }
-        } catch (err) {
-          setStatus("❌ ERROR: Network error while fetching .riv\n" + err);
-          return;
-        }
+      // Fallback: timeline animation
+      animations: ["Timeline 1"],
 
-        // 3️⃣ Initialize Rive
-        setStatus("Initializing Rive…");
+      autoplay: true,
+      fit: rive.Fit.cover,       // Desktop fullscreen feel
+      alignment: rive.Alignment.center,
+    });
+  </script>
 
-        const r = new rive.Rive({
-          src: RIV_PATH + "?v=" + Date.now(), // cache bust
-          canvas: document.getElementById("riveCanvas"),
-          autoplay: true,
-          stateMachines: [STATE_MACHINE],
-          fit: rive.Fit.Cover,
-          alignment: rive.Alignment.Center,
-
-          onLoad: () => {
-            setStatus(
-              "✅ Rive loaded successfully\n" +
-              "State Machine: " + STATE_MACHINE
-            );
-            r.resizeDrawingSurfaceToCanvas();
-          },
-
-          onLoadError: (err) => {
-            setStatus("❌ Rive load error:\n" + (err?.message || err));
-          }
-        });
-
-        window.addEventListener("resize", () => {
-          r.resizeDrawingSurfaceToCanvas();
-        });
-
-      })();
-    </script>
-  </body>
+</body>
 </html>
